@@ -52,9 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('✅ Full token is now visible on the web page.');
 
             console.log('STEP 4: Initializing Twilio.Device with the token...');
+            
+            // --- SIMPLIFIED INITIALIZATION ---
+            // We are removing the 'edge' parameter to simplify and rule out issues.
             device = new Twilio.Device(token, {
-                logLevel: 1,
-                edge: ['ashburn', 'frankfurt'],
+                logLevel: 1 
             });
 
             device.on('ready', () => {
