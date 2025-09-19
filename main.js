@@ -75,12 +75,33 @@ class TwilioDialer {
             console.log('Fetching access token...');
             const token = await this.fetchAccessToken();
             
-            // Initialize device
+            console.log('🔧 About to create Twilio Device with token...');
+            console.log('🔧 Token preview:', token.substring(0, 50) + '...');
+            
+            // Initialize device with more detailed error handling
             console.log('Initializing Twilio Device...');
-            this.device = new Twilio.Device(token, {
-                logLevel: 1,
-                enableRingingState: true
-            });
+            
+            try {
+                this.device = new Twilio.Device(token, {
+                    logLevel: 1,
+                    enableRingingState: true,
+                    // Add more debug options
+                    debug: true,
+                    allowIncomingWhileBusy: true
+                });
+                
+                console.log('✅ Twilio Device created successfully');
+                
+            } catch (deviceError) {
+                console.error('❌ Failed to create Twilio Device:', deviceError);
+                console.error('❌ Device error details:', {
+                    name: deviceError.name,
+                    message: deviceError.message,
+                    code: deviceError.code,
+                    stack: deviceError.stack
+                });
+                throw new Error(`Device creation failed: ${deviceError.message}`);
+            }
             
             // Set up device event listeners
             this.setupDeviceEvents();
@@ -97,17 +118,44 @@ class TwilioDialer {
         console.log('Setting up device events');
         
         this.device.on('ready', () => {
-            console.log('Device is ready');
+            console.log('✅ Device is ready');
             this.updateStatus('Ready to make calls', 'idle');
         });
         
         this.device.on('error', (error) => {
-            console.error('Device error:', error);
+            console.error('❌ Device error occurred:', error);
+            console.error('❌ Error details:', {
+                code: error.code,
+                message: error.message,
+                twilioError: error.twilioError,
+                causes: error.causes,
+                description: error.description
+            });
+            
+            // More specific error handling
+            if (error.code === 20101) {
+                console.error('🔍 AccessTokenInvalid - This could be:');
+                console.error('   1. Wrong API Key or Account SID');
+                console.error('   2. TwiML App SID doesn\'t exist or is wrong');
+                console.error('   3. API Key doesn\'t have permission for Voice');
+                console.error('   4. Token signature is invalid');
+                console.error('   5. TwiML App Voice URL is not configured');
+            }
+            
             this.updateStatus(`Device error: ${error.message}`, 'error');
         });
         
+        this.device.on('tokenWillExpire', () => {
+            console.log('🔄 Token will expire, refreshing...');
+            this.fetchAccessToken().then(token => {
+                this.device.updateToken(token);
+            }).catch(err => {
+                console.error('Failed to refresh token:', err);
+            });
+        });
+        
         this.device.on('connect', (connection) => {
-            console.log('Call connected');
+            console.log('✅ Call connected');
             this.connection = connection;
             this.isConnected = true;
             this.updateStatus('Call connected', 'connected');
@@ -115,11 +163,16 @@ class TwilioDialer {
         });
         
         this.device.on('disconnect', () => {
-            console.log('Call disconnected');
+            console.log('📞 Call disconnected');
             this.connection = null;
             this.isConnected = false;
             this.updateStatus('Call ended', 'idle');
             this.toggleButtons(true, false);
+        });
+        
+        this.device.on('incoming', (connection) => {
+            console.log('📞 Incoming call');
+            // Handle incoming calls if needed
         });
         
         console.log('Device events set up successfully');
