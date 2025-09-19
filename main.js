@@ -402,7 +402,7 @@ class TwilioDialer {
         console.log('🔍 Checking TwiML App configuration...');
         
         try {
-            const response = await fetch(`${this.cloudflareWorkerUrl}/check-twiml`, {
+            const response = await fetch(`${this.tokenEndpoint}/check-twiml`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -411,10 +411,23 @@ class TwilioDialer {
 
             if (!response.ok) {
                 console.error('❌ Failed to check TwiML App status:', response.status);
+                const errorText = await response.text();
+                console.error('❌ Response error:', errorText);
                 return false;
             }
 
-            const result = await response.json();
+            // Get response text first to see what we're getting
+            const responseText = await response.text();
+            console.log('🔍 TwiML check raw response:', responseText);
+            
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('❌ Failed to parse TwiML App response as JSON:', parseError);
+                console.error('❌ Raw response was:', responseText);
+                return false;
+            }
             console.log('📋 TwiML App Status:', result);
 
             if (result.success && result.twimlApp) {
