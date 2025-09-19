@@ -155,30 +155,74 @@
         </div>
     </div>
 
-    <!-- Try multiple Twilio SDK sources -->
+    <!-- Fallback: Try direct script loading first -->
+    <script src="https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js" 
+            onerror="console.log('Direct script load failed, trying alternatives')"></script>
+    
+    <!-- Try multiple Twilio SDK sources if direct loading fails -->
     <script>
-        // Check if Twilio SDK loaded successfully
-        function loadTwilioSDK() {
-            const script = document.createElement('script');
-            script.src = 'https://sdk.twilio.com/js/voice/releases/2.11.1/twilio.min.js';
-            script.crossOrigin = 'anonymous';
-            script.onload = function() {
-                console.log('Twilio SDK loaded successfully');
-                // Load main.js after Twilio SDK is ready
-                const mainScript = document.createElement('script');
-                mainScript.src = 'main.js';
-                document.head.appendChild(mainScript);
-            };
-            script.onerror = function() {
-                console.error('Failed to load Twilio SDK');
-                document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK';
+        // Wait a moment for direct script to load, then check
+        setTimeout(() => {
+            if (typeof Twilio !== 'undefined' && Twilio.Device) {
+                console.log('Twilio SDK loaded via direct script');
+                loadMainScript();
+                return;
+            }
+            
+            console.log('Direct script failed, trying alternatives...');
+            loadTwilioSDKAlternatives();
+        }, 2000);
+        
+        function loadMainScript() {
+            const mainScript = document.createElement('script');
+            mainScript.src = 'main.js';
+            document.head.appendChild(mainScript);
+        }
+        
+        // List of Twilio SDK URLs to try
+        const twilioSdkUrls = [
+            'https://sdk.twilio.com/js/voice/releases/2.11.1/twilio.min.js',
+            'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js',
+            'https://sdk.twilio.com/js/voice/releases/2.9.0/twilio.min.js'
+        ];
+        
+        let currentSdkIndex = 0;
+        
+        function loadTwilioSDKAlternatives() {
+            if (currentSdkIndex >= twilioSdkUrls.length) {
+                console.error('All Twilio SDK sources failed');
+                document.getElementById('statusDisplay').textContent = 'Cannot load Twilio SDK. Please check your internet connection.';
                 document.getElementById('statusDisplay').className = 'status-display status-error';
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = twilioSdkUrls[currentSdkIndex];
+            console.log(`Trying alternative SDK source: ${script.src}`);
+            
+            script.onload = function() {
+                console.log('Alternative Twilio SDK loaded from:', script.src);
+                if (typeof Twilio !== 'undefined' && Twilio.Device) {
+                    console.log('Twilio.Device is available');
+                    loadMainScript();
+                } else {
+                    console.error('Twilio object not found after loading script');
+                    tryNextSdk();
+                }
             };
+            
+            script.onerror = function() {
+                console.error(`Failed to load alternative SDK from: ${script.src}`);
+                tryNextSdk();
+            };
+            
             document.head.appendChild(script);
         }
         
-        // Load SDK when page is ready
-        document.addEventListener('DOMContentLoaded', loadTwilioSDK);
+        function tryNextSdk() {
+            currentSdkIndex++;
+            setTimeout(loadTwilioSDKAlternatives, 1000);
+        }
     </script>
 </body>
 </html>
