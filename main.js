@@ -11,7 +11,7 @@ class TwilioDialer {
         this.statusDisplay = document.getElementById('statusDisplay');
         
         // Configuration - Replace with your Cloudflare Worker URL
-        this.tokenEndpoint = 'https://your-worker.your-subdomain.workers.dev/token';
+        this.tokenEndpoint = 'twilio-token-worker.bhupinderhappy777.workers.dev';
         
         this.init();
     }
