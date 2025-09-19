@@ -119,6 +119,16 @@ class TwilioDialer {
             // Set up device event listeners
             this.setupDeviceEvents();
             
+            // Check TwiML App configuration
+            console.log('🔍 Checking TwiML App configuration...');
+            setTimeout(async () => {
+                const twimlStatus = await this.checkTwiMLAppStatus();
+                if (!twimlStatus) {
+                    console.warn('⚠️  TwiML App configuration issues detected');
+                    console.warn('💡 This might be why you\'re getting AccessTokenInvalid errors');
+                }
+            }, 1000);
+            
             console.log('TwilioDialer initialized successfully');
             
         } catch (error) {
@@ -386,6 +396,58 @@ class TwilioDialer {
     toggleButtons(callEnabled, hangupEnabled) {
         this.callButton.disabled = !callEnabled;
         this.hangupButton.disabled = !hangupEnabled;
+    }
+
+    async checkTwiMLAppStatus() {
+        console.log('🔍 Checking TwiML App configuration...');
+        
+        try {
+            const response = await fetch(`${this.cloudflareWorkerUrl}/check-twiml`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to check TwiML App status:', response.status);
+                return false;
+            }
+
+            const result = await response.json();
+            console.log('📋 TwiML App Status:', result);
+
+            if (result.success && result.twimlApp) {
+                const app = result.twimlApp;
+                console.log(`📱 TwiML App SID: ${app.sid}`);
+                console.log(`📱 TwiML App Name: ${app.friendlyName || 'No name set'}`);
+                console.log(`🔗 Voice URL: ${app.voiceUrl || 'NOT CONFIGURED'}`);
+                console.log(`🔗 Voice Method: ${app.voiceMethod || 'NOT SET'}`);
+                console.log(`📻 Status Messages URL: ${app.statusCallbackUrl || 'NOT SET'}`);
+
+                if (!app.voiceUrl) {
+                    console.error('❌ CRITICAL: TwiML App Voice URL is not configured!');
+                    console.error('🛠️  Please set Voice URL to your Cloudflare Worker voice endpoint');
+                    this.updateStatus('TwiML App Voice URL not configured', 'error');
+                    return false;
+                }
+
+                if (app.voiceUrl && !app.voiceUrl.includes('/voice')) {
+                    console.warn('⚠️  Voice URL might not point to correct endpoint');
+                    console.warn(`Expected to contain '/voice', got: ${app.voiceUrl}`);
+                }
+
+                console.log('✅ TwiML App appears to be properly configured');
+                return true;
+            } else {
+                console.error('❌ Failed to retrieve TwiML App details:', result.error);
+                return false;
+            }
+
+        } catch (error) {
+            console.error('❌ Error checking TwiML App status:', error);
+            return false;
+        }
     }
 }
 
