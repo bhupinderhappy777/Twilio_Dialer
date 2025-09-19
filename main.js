@@ -126,44 +126,61 @@ class TwilioDialer {
     }
     
     async fetchAccessToken() {
-        console.log('Fetching access token from:', this.tokenEndpoint);
-        
         try {
-            const response = await fetch(this.tokenEndpoint);
+            console.log('🔍 Fetching token from:', this.tokenEndpoint);
             
-            console.log('Response status:', response.status);
-            console.log('Response headers:', [...response.headers.entries()]);
+            const response = await fetch(this.tokenEndpoint);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            // Get response as text first to see what we're actually getting
-            const responseText = await response.text();
-            console.log('Raw response text:', responseText);
-            console.log('Response length:', responseText.length);
-            
-            // Try to parse as JSON
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('JSON parse failed:', parseError);
-                console.error('First 200 characters of response:', responseText.substring(0, 200));
-                throw new Error(`Invalid JSON from server: ${parseError.message}`);
-            }
+            const data = await response.json();
             
             if (!data.token) {
-                console.error('Response data:', data);
                 throw new Error('No token in response');
             }
             
-            console.log('Access token received successfully');
+            // 🔍 DECODE AND VALIDATE TOKEN
+            const tokenParts = data.token.split('.');
+            if (tokenParts.length === 3) {
+                try {
+                    const header = JSON.parse(atob(tokenParts[0]));
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    
+                    console.log('🔍 Token Header:', header);
+                    console.log('🔍 Token Payload:', payload);
+                    console.log('🕐 Token expires:', new Date(payload.exp * 1000));
+                    console.log('🕐 Current time:', new Date());
+                    console.log('⏰ Time until expiry:', Math.round((payload.exp * 1000 - Date.now()) / 1000), 'seconds');
+                    
+                    // Validate required fields
+                    console.log('✅ ISS (API Key SID):', payload.iss);
+                    console.log('✅ SUB (Account SID):', payload.sub);
+                    console.log('✅ Identity:', payload.grants?.identity);
+                    console.log('✅ TwiML App SID:', payload.grants?.voice?.outgoing?.application_sid);
+                    
+                    // Check for common issues
+                    if (!payload.iss || !payload.iss.startsWith('SK')) {
+                        console.error('❌ ISS field should be API Key SID starting with SK');
+                    }
+                    if (!payload.sub || !payload.sub.startsWith('AC')) {
+                        console.error('❌ SUB field should be Account SID starting with AC');
+                    }
+                    if (!payload.grants?.voice?.outgoing?.application_sid?.startsWith('AP')) {
+                        console.error('❌ TwiML App SID should start with AP');
+                    }
+                    
+                } catch (e) {
+                    console.error('❌ Could not decode token:', e);
+                }
+            }
+            
             return data.token;
             
         } catch (error) {
-            console.error('Token fetch error:', error);
-            throw new Error(`Failed to get access token: ${error.message}`);
+            console.error('❌ Token fetch error:', error);
+            throw error;
         }
     }
     
