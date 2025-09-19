@@ -3,100 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twilio Voice Dialer</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .dialer {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            width: 100%;
-            max-width: 380px;
-            text-align: center;
-        }
-        h1 {
-            color: #1a202c;
-            font-weight: 700;
-            font-size: 28px;
-            margin-bottom: 30px;
-        }
-        #phoneNumber {
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        button {
-            padding: 15px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-        #callButton {
-            background-color: #38a169;
-            color: white;
-        }
-        #callButton:hover {
-            background-color: #2f855a;
-        }
-        #hangupButton {
-            background-color: #e53e3e;
-            color: white;
-        }
-        #hangupButton:hover {
-            background-color: #c53030;
-        }
-        button:disabled {
-            background-color: #a0aec0;
-            cursor: not-allowed;
-        }
-        #status {
-            font-weight: 600;
-            padding: 12px;
-            border-radius: 8px;
-        }
-        .status-idle { background-color: #e2e8f0; color: #4a5568; }
-        .status-connecting { background-color: #faf089; color: #975a16; }
-        .status-ready { background-color: #9ae6b4; color: #276749; }
-        .status-connected { background-color: #63b3ed; color: #2c5282; }
-        .status-error { background-color: #feb2b2; color: #9b2c2c; }
-    </style>
+    <title>Twilio Dialer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
 </head>
-<body>
-    <div class="dialer">
-        <h1>Twilio Dialer</h1>
-        <input type="tel" id="phoneNumber" placeholder="+15551234567">
-        <div class="buttons">
-            <button id="callButton">Call</button>
-            <button id="hangupButton" disabled>Hang Up</button>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold text-center text-gray-800">Twilio Voice Dialer</h1>
+        
+        <div>
+            <label for="phone-number" class="text-sm font-medium text-gray-700">Phone Number</label>
+            <input type="tel" id="phone-number" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., +15551234567">
         </div>
+
+        <div class="flex space-x-4">
+            <button id="call-button" class="w-full px-4 py-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-gray-400">
+                Call
+            </button>
+            <button id="hangup-button" class="w-full px-4 py-2 font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:bg-gray-400" disabled>
+                Hang Up
+            </button>
+        </div>
+
         <div id="status" class="p-3 text-center text-gray-700 bg-gray-100 rounded-md">
             Ready
         </div>
 
-        <!-- New section to display the full token -->
+        <!-- This section will display the full token for debugging -->
         <div class="mt-4">
             <label class="text-xs font-medium text-gray-500">Full Access Token (for debugging):</label>
             <pre id="token-display" class="w-full p-2 mt-1 text-xs text-gray-600 bg-gray-100 rounded-md break-all whitespace-pre-wrap">Waiting for token...</pre>
@@ -104,7 +36,9 @@
     </div>
 
     <!-- Load Twilio Voice SDK from unpkg -->
-    <script src="https://unpkg.com/@twilio/voice-sdk@2.10.2/dist/twilio.min.js"></script>
-    <script src="main.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@twilio/voice-sdk@2.10.2/dist/twilio.min.js"></script>
+    
+    <!-- Your application's JavaScript -->
+    <script type="text/javascript" src="main.js"></script>
 </body>
 </html>
