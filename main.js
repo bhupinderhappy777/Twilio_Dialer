@@ -46,11 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Creating Twilio.Device object...');
             device = new Twilio.Device(token, { logLevel: 1, debug: true });
             
-            // --- THIS IS THE NEW FIX ---
-            // 4. Manually set the audio output device to un-stick the SDK.
+            // 4. Manually set the audio output device.
             console.log('Attempting to manually set audio output device...');
             await setAudioOutputDevice(device);
-            // --- END OF FIX ---
+
+            // 5. Manually set the audio input device.
+            console.log('Attempting to manually set audio input device...');
+            await setAudioInputDevice(device);
 
             addDeviceListeners(device);
             
@@ -93,6 +95,39 @@ document.addEventListener('DOMContentLoaded', () => {
                         clearInterval(interval);
                         console.error('Could not find any available audio output devices.');
                         reject(new Error('No audio output devices found.'));
+                    }
+                }
+            }, 500);
+        });
+    }
+
+    async function setAudioInputDevice(device) {
+        // This function is nearly identical to the output device function.
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const interval = setInterval(async () => {
+                // Check the availableInputDevices collection.
+                if (device.audio && device.audio.availableInputDevices.size > 0) {
+                    clearInterval(interval);
+                    try {
+                        const defaultDevice = Array.from(device.audio.availableInputDevices.values())[0];
+                        console.log(`Found input device: ${defaultDevice.label}. Setting it as input.`);
+
+                        // Use the .setInputDevice() method.
+                        await device.audio.setInputDevice(defaultDevice.deviceId);
+                        
+                        console.log('Audio input device has been set successfully.');
+                        resolve();
+                    } catch (err) {
+                        console.error('Failed to set audio input device.', err);
+                        reject(err);
+                    }
+                } else {
+                    attempts++;
+                    if (attempts > 10) { // Wait for max 5 seconds
+                        clearInterval(interval);
+                        console.error('Could not find any available audio input devices.');
+                        reject(new Error('No audio input devices found.'));
                     }
                 }
             }, 500);
