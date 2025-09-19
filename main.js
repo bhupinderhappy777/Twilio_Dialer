@@ -215,7 +215,7 @@ class TwilioDialer {
                 console.log('🔍 No debug endpoint available, continuing with token fetch...');
             }
             
-            const response = await fetch(this.tokenEndpoint);
+            const response = await fetch(this.tokenEndpoint + '/token');
             
             console.log('📊 Response status:', response.status);
             console.log('📊 Response ok:', response.ok);
