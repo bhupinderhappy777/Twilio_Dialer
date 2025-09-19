@@ -1,6 +1,9 @@
 // This function will run once the entire HTML document is loaded and parsed.
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- NEW: Log the loaded SDK version to the console ---
+    console.log(`Twilio Voice SDK version: ${Twilio.Device.version}`);
+
     const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
 
     // UI Elements
