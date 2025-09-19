@@ -92,9 +92,18 @@
             <button id="callButton">Call</button>
             <button id="hangupButton" disabled>Hang Up</button>
         </div>
-        <div id="status" class="status-idle">Initializing...</div>
+        <div id="status" class="p-3 text-center text-gray-700 bg-gray-100 rounded-md">
+            Ready
+        </div>
+
+        <!-- New section to display the full token -->
+        <div class="mt-4">
+            <label class="text-xs font-medium text-gray-500">Full Access Token (for debugging):</label>
+            <pre id="token-display" class="w-full p-2 mt-1 text-xs text-gray-600 bg-gray-100 rounded-md break-all whitespace-pre-wrap">Waiting for token...</pre>
+        </div>
     </div>
 
+    <!-- Load Twilio Voice SDK from unpkg -->
     <script src="https://unpkg.com/@twilio/voice-sdk@2.10.2/dist/twilio.min.js"></script>
     <script src="main.js"></script>
 </body>

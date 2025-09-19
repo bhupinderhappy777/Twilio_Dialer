@@ -2,10 +2,11 @@
 const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev'; // Replace with your worker URL
 
 // DOM Elements
-const callButton = document.getElementById('callButton');
-const hangupButton = document.getElementById('hangupButton');
-const phoneNumberInput = document.getElementById('phoneNumber');
+const callButton = document.getElementById('call-button'); // Corrected ID
+const hangupButton = document.getElementById('hangup-button'); // Corrected ID
+const phoneNumberInput = document.getElementById('phone-number'); // Corrected ID
 const statusDiv = document.getElementById('status');
+const tokenDisplay = document.getElementById('token-display'); // New element for token
 
 let device;
 let connection;
@@ -13,7 +14,11 @@ let connection;
 // Update UI
 function updateStatus(message, type) {
     statusDiv.textContent = message;
-    statusDiv.className = `status-${type}`;
+    // Simple styling based on type
+    statusDiv.style.color = 'black';
+    if (type === 'error') statusDiv.style.color = 'red';
+    if (type === 'ready') statusDiv.style.color = 'green';
+    if (type === 'connecting') statusDiv.style.color = 'blue';
 }
 
 function toggleCallButtons(canCall, canHangup) {
@@ -40,12 +45,12 @@ async function initializeDevice() {
         const data = await response.json();
         const token = data.token;
         console.log('STEP 3: Token successfully extracted from JSON response.');
-        console.log('Received Token:', token);
-
-        // Automatically copy the token to the clipboard for easy debugging
-        navigator.clipboard.writeText(token).then(() => {
-            console.log('✅ Token copied to clipboard! You can now paste it into jwt.io.');
-        });
+        
+        // --- THIS IS THE NEW PART ---
+        // Display the full token directly on the page to avoid console truncation
+        tokenDisplay.textContent = token;
+        console.log('✅ Full token is now visible on the web page.');
+        // --- END OF NEW PART ---
 
         console.log('STEP 4: Initializing Twilio.Device with the token...');
         device = new Twilio.Device(token, {
