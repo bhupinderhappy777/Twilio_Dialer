@@ -151,13 +151,34 @@
         </div>
         
         <div id="statusDisplay" class="status-display status-idle">
-            Ready to make a call
+            Loading...
         </div>
     </div>
 
-    <!-- Twilio Voice SDK -->
-    <script src="https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js"></script>
-    <!-- Main JavaScript -->
-    <script src="main.js"></script>
+    <!-- Try multiple Twilio SDK sources -->
+    <script>
+        // Check if Twilio SDK loaded successfully
+        function loadTwilioSDK() {
+            const script = document.createElement('script');
+            script.src = 'https://sdk.twilio.com/js/voice/releases/2.11.1/twilio.min.js';
+            script.crossOrigin = 'anonymous';
+            script.onload = function() {
+                console.log('Twilio SDK loaded successfully');
+                // Load main.js after Twilio SDK is ready
+                const mainScript = document.createElement('script');
+                mainScript.src = 'main.js';
+                document.head.appendChild(mainScript);
+            };
+            script.onerror = function() {
+                console.error('Failed to load Twilio SDK');
+                document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK';
+                document.getElementById('statusDisplay').className = 'status-display status-error';
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Load SDK when page is ready
+        document.addEventListener('DOMContentLoaded', loadTwilioSDK);
+    </script>
 </body>
 </html>

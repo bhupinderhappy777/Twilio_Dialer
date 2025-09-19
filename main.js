@@ -11,7 +11,7 @@ class TwilioDialer {
         this.statusDisplay = document.getElementById('statusDisplay');
         
         // Configuration - Replace with your Cloudflare Worker URL
-        this.tokenEndpoint = 'twilio-token-worker.bhupinderhappy777.workers.dev';
+        this.tokenEndpoint = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
         
         this.init();
     }
@@ -84,6 +84,8 @@ class TwilioDialer {
     
     async fetchAccessToken() {
         try {
+            console.log('Fetching token from:', this.tokenEndpoint);
+            
             const response = await fetch(this.tokenEndpoint, {
                 method: 'GET',
                 headers: {
@@ -91,22 +93,35 @@ class TwilioDialer {
                 }
             });
             
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
+            // Get response as text first to debug
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            // Try to parse as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                console.error('Response was:', responseText);
+                throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+            }
             
             if (!data.token) {
                 throw new Error('No token received from server');
             }
             
+            console.log('Token received successfully');
             return data.token;
         } catch (error) {
             console.error('Error fetching access token:', error);
-            
-            // For development/testing purposes, you can return a dummy token
-            // Replace this with proper error handling in production
             throw new Error(`Failed to fetch access token: ${error.message}. Please ensure your Cloudflare Worker is configured correctly.`);
         }
     }
