@@ -131,56 +131,95 @@ class TwilioDialer {
             
             const response = await fetch(this.tokenEndpoint);
             
+            console.log('📊 Response status:', response.status);
+            console.log('📊 Response ok:', response.ok);
+            
+            // Get response text first to see exactly what we're getting
+            const responseText = await response.text();
+            console.log('📄 Raw response text:', responseText);
+            console.log('📏 Response length:', responseText.length);
+            
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${responseText}`);
             }
             
-            const data = await response.json();
+            // Try to parse as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('✅ JSON parsed successfully:', data);
+            } catch (parseError) {
+                console.error('❌ JSON parse failed:', parseError);
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
             
             if (!data.token) {
+                console.error('❌ No token in response. Data:', data);
                 throw new Error('No token in response');
             }
             
+            console.log('🎫 Token received, length:', data.token.length);
+            
             // 🔍 DECODE AND VALIDATE TOKEN
             const tokenParts = data.token.split('.');
+            console.log('🔍 Token has', tokenParts.length, 'parts (should be 3)');
+            
             if (tokenParts.length === 3) {
                 try {
                     const header = JSON.parse(atob(tokenParts[0]));
                     const payload = JSON.parse(atob(tokenParts[1]));
                     
                     console.log('🔍 Token Header:', header);
-                    console.log('🔍 Token Payload:', payload);
-                    console.log('🕐 Token expires:', new Date(payload.exp * 1000));
-                    console.log('🕐 Current time:', new Date());
-                    console.log('⏰ Time until expiry:', Math.round((payload.exp * 1000 - Date.now()) / 1000), 'seconds');
+                    console.log('🔍 Token Payload:', JSON.stringify(payload, null, 2));
                     
-                    // Validate required fields
+                    // Time validation
+                    const now = Date.now();
+                    const expiry = payload.exp * 1000;
+                    console.log('🕐 Current time:', new Date(now).toISOString());
+                    console.log('🕐 Token expires:', new Date(expiry).toISOString());
+                    console.log('⏰ Time until expiry:', Math.round((expiry - now) / 1000), 'seconds');
+                    
+                    if (expiry <= now) {
+                        console.error('❌ TOKEN IS EXPIRED!');
+                    }
+                    
+                    // Field validation
                     console.log('✅ ISS (API Key SID):', payload.iss);
                     console.log('✅ SUB (Account SID):', payload.sub);
                     console.log('✅ Identity:', payload.grants?.identity);
                     console.log('✅ TwiML App SID:', payload.grants?.voice?.outgoing?.application_sid);
                     
-                    // Check for common issues
+                    // Check for issues
+                    const issues = [];
                     if (!payload.iss || !payload.iss.startsWith('SK')) {
-                        console.error('❌ ISS field should be API Key SID starting with SK');
+                        issues.push('ISS should be API Key SID starting with SK');
                     }
                     if (!payload.sub || !payload.sub.startsWith('AC')) {
-                        console.error('❌ SUB field should be Account SID starting with AC');
+                        issues.push('SUB should be Account SID starting with AC');
                     }
                     if (!payload.grants?.voice?.outgoing?.application_sid?.startsWith('AP')) {
-                        console.error('❌ TwiML App SID should start with AP');
+                        issues.push('TwiML App SID should start with AP');
+                    }
+                    if (!payload.grants?.identity) {
+                        issues.push('Missing identity in grants');
+                    }
+                    
+                    if (issues.length > 0) {
+                        console.error('❌ Token validation issues:', issues);
                     }
                     
                 } catch (e) {
                     console.error('❌ Could not decode token:', e);
                 }
+            } else {
+                console.error('❌ Invalid JWT format - should have 3 parts separated by dots');
             }
             
             return data.token;
             
         } catch (error) {
             console.error('❌ Token fetch error:', error);
-            throw error;
+            throw new Error(`Failed to get access token: ${error.message}`);
         }
     }
     
