@@ -287,6 +287,7 @@ class TwilioDialer {
                             console.error('❌ STILL USING OLD TwiML App SID!');
                             console.error('❌ Your Cloudflare Worker was NOT updated!');
                             console.error('❌ Please update TWILIO_TWIML_APP_SID in Cloudflare Dashboard');
+                            console.error('❌ Current SID in token:', twimlAppSid);
                         } else {
                             console.log('✅ Using NEW TwiML App SID:', twimlAppSid);
                             console.log('✅ Worker was updated successfully');
