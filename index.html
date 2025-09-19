@@ -156,25 +156,34 @@
     <script src="https://unpkg.com/@twilio/voice-sdk@2.10.0/dist/twilio.min.js"></script>
     
     <script>
+        console.log('🚀 Page loaded, waiting for Twilio SDK...');
+        
         window.addEventListener('load', function() {
-            console.log('Window loaded, initializing dialer...');
+            console.log('✅ Window loaded');
             
-            // Check if Twilio is available
+            // Check if Twilio SDK loaded
             if (typeof Twilio === 'undefined') {
-                console.error('Twilio SDK not loaded');
+                console.error('❌ Twilio SDK not loaded');
                 document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK';
                 document.getElementById('statusDisplay').className = 'status-display status-error';
                 return;
             }
             
-            console.log('Twilio SDK available, starting app...');
-            initializeDialer();
+            console.log('✅ Twilio SDK loaded successfully');
+            console.log('🔍 Available Twilio methods:', Object.keys(Twilio));
+            
+            // Small delay to ensure everything is ready
+            setTimeout(() => {
+                console.log('🚀 Starting Twilio Dialer...');
+                try {
+                    window.dialerInstance = new TwilioDialer();
+                } catch (error) {
+                    console.error('❌ Failed to create TwilioDialer:', error);
+                    document.getElementById('statusDisplay').textContent = 'Failed to initialize dialer';
+                    document.getElementById('statusDisplay').className = 'status-display status-error';
+                }
+            }, 100);
         });
-        
-        function initializeDialer() {
-            console.log('Starting dialer initialization...');
-            new TwilioDialer();
-        }
     </script>
     <script src="main.js"></script>
 </body>
