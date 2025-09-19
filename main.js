@@ -195,6 +195,16 @@ class TwilioDialer {
         try {
             console.log('🔍 Fetching token from:', this.tokenEndpoint);
             
+            // 🔍 TEST: Also try to fetch a debug endpoint
+            console.log('🔍 First, let\'s check what TwiML App SID the worker is using...');
+            try {
+                const debugResponse = await fetch(this.tokenEndpoint + '/debug');
+                const debugText = await debugResponse.text();
+                console.log('🔍 Worker debug info:', debugText);
+            } catch (debugError) {
+                console.log('🔍 No debug endpoint available, continuing with token fetch...');
+            }
+            
             const response = await fetch(this.tokenEndpoint);
             
             console.log('📊 Response status:', response.status);
@@ -271,6 +281,17 @@ class TwilioDialer {
                         console.log('🔍 TwiML App SID to verify:', twimlAppSid);
                         console.log('🔍 Go to Twilio Console → Develop → TwiML Apps');
                         console.log('🔍 Look for an app with SID:', twimlAppSid);
+                        
+                        // 🔍 CHECK IF THIS IS THE OLD OR NEW SID
+                        if (twimlAppSid === 'AP96fdf2fad91e02ef564d5353a7fd67a0') {
+                            console.error('❌ STILL USING OLD TwiML App SID!');
+                            console.error('❌ Your Cloudflare Worker was NOT updated!');
+                            console.error('❌ Please update TWILIO_TWIML_APP_SID in Cloudflare Dashboard');
+                        } else {
+                            console.log('✅ Using NEW TwiML App SID:', twimlAppSid);
+                            console.log('✅ Worker was updated successfully');
+                        }
+                        
                         console.log('🔍 If it doesn\'t exist, CREATE A NEW ONE!');
                     }
                     
