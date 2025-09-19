@@ -51,36 +51,52 @@ document.addEventListener('DOMContentLoaded', () => {
             tokenDisplay.textContent = token;
             console.log('✅ Full token is now visible on the web page.');
 
-            console.log('STEP 4: Initializing Twilio.Device with the token...');
+            console.log('STEP 4: Attempting to create Twilio.Device object...');
             
-            // --- SIMPLIFIED INITIALIZATION ---
-            // We are removing the 'edge' parameter to simplify and rule out issues.
-            device = new Twilio.Device(token, {
-                logLevel: 1 
-            });
+            try {
+                // We are creating the device with the most verbose logging enabled.
+                device = new Twilio.Device(token, {
+                    logLevel: 1,
+                    // Using the 'debug' property to get even more internal state logs
+                    debug: true 
+                });
+                console.log('STEP 5: Twilio.Device object created successfully.');
 
+            } catch (e) {
+                console.error('CRITICAL: The Twilio.Device constructor threw an error.', e);
+                updateStatus('SDK constructor failed', 'error');
+                // Stop execution if the constructor fails
+                return; 
+            }
+
+
+            console.log('STEP 6: Adding event listeners (.on("ready"), .on("error"), etc.)...');
             device.on('ready', () => {
+                console.log('EVENT: "ready" - Device is registered and ready to make calls.');
                 updateStatus('Ready to call', 'ready');
                 toggleCallButtons(true, false);
             });
 
             device.on('error', (error) => {
-                console.error('Twilio.Device Error:', error);
+                console.error('EVENT: "error" - A fatal error occurred in the SDK.', error);
                 updateStatus(`Error: ${error.message}`, 'error');
                 toggleCallButtons(true, false);
             });
 
             device.on('connect', (conn) => {
+                console.log('EVENT: "connect" - Call has been established.');
                 connection = conn;
                 updateStatus('Call connected', 'connected');
                 toggleCallButtons(false, true);
             });
 
             device.on('disconnect', () => {
+                console.log('EVENT: "disconnect" - Call has ended.');
                 updateStatus('Call ended', 'ready');
                 toggleCallButtons(true, false);
                 connection = null;
             });
+            console.log('STEP 7: Event listeners attached.');
 
         } catch (error) {
             console.error('Initialization Error:', error);
