@@ -27,13 +27,23 @@ async function initializeDevice() {
     toggleCallButtons(false, false);
 
     try {
+        console.log('STEP 1: Fetching token from', WORKER_URL);
         const response = await fetch(WORKER_URL);
+        console.log('STEP 2: Received response from worker');
+
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Token fetch failed. Status:', response.status, 'Response:', errorText);
             throw new Error(`Failed to fetch token: ${response.statusText}`);
         }
+
         const data = await response.json();
         const token = data.token;
+        console.log('STEP 3: Token successfully extracted from JSON response.');
+        console.log('Received Token:', token);
 
+
+        console.log('STEP 4: Initializing Twilio.Device with the token...');
         device = new Twilio.Device(token, {
             logLevel: 1,
             edge: ['ashburn', 'frankfurt'],
