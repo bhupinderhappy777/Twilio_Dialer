@@ -4,17 +4,110 @@ document.addEventListener('DOMContentLoaded', () => {
     // Your Cloudflare Worker URL
     const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev'; // Replace with your worker URL
 
-    // DOM Elements - Now safely accessed after the DOM is ready
+    // UI Sections
+    const startupUI = document.getElementById('startup-ui');
+    const dialerUI = document.getElementById('dialer-ui');
+
+    // Buttons and Inputs
+    const startupButton = document.getElementById('startup-button');
     const callButton = document.getElementById('call-button');
     const hangupButton = document.getElementById('hangup-button');
     const phoneNumberInput = document.getElementById('phone-number');
+    
+    // Display Elements
     const statusDiv = document.getElementById('status');
     const tokenDisplay = document.getElementById('token-display');
 
     let device;
     let connection;
 
-    // Update UI
+    // --- Main Application Flow ---
+
+    // 1. Add listener to the startup button
+    startupButton.addEventListener('click', initializeDevice);
+
+    // 2. Add listeners for call controls
+    callButton.addEventListener('click', makeCall);
+    hangupButton.addEventListener('click', hangUp);
+
+
+    // This function is now called ONLY after the user clicks the startup button
+    async function initializeDevice() {
+        updateStatus('Initializing...', 'idle');
+        startupButton.disabled = true; // Prevent multiple clicks
+
+        try {
+            console.log('STEP 1: Fetching token from', WORKER_URL);
+            const response = await fetch(WORKER_URL);
+            if (!response.ok) throw new Error('Failed to fetch token');
+            const data = await response.json();
+            const token = data.token;
+            console.log('STEP 2: Token received.');
+            tokenDisplay.textContent = token;
+
+            console.log('STEP 3: Creating Twilio.Device object (after user click)...');
+            device = new Twilio.Device(token, { logLevel: 1, debug: true });
+            console.log('STEP 4: Twilio.Device object created.');
+
+            addDeviceListeners(device);
+            
+        } catch (error) {
+            console.error('Initialization Error:', error);
+            updateStatus(`Initialization failed: ${error.message}`, 'error');
+            startupButton.disabled = false;
+        }
+    }
+
+    function addDeviceListeners(device) {
+        device.on('ready', () => {
+            console.log('EVENT: "ready" - Device is registered.');
+            updateStatus('Ready to call', 'ready');
+            
+            // Show the main dialer UI
+            startupUI.classList.add('hidden');
+            dialerUI.classList.remove('hidden');
+            
+            toggleCallButtons(true, false);
+        });
+
+        device.on('error', (error) => {
+            console.error('EVENT: "error" - A fatal error occurred.', error);
+            updateStatus(`SDK Error: ${error.message}`, 'error');
+            toggleCallButtons(false, false);
+            startupButton.disabled = false;
+        });
+
+        device.on('connect', (conn) => {
+            console.log('EVENT: "connect" - Call established.');
+            connection = conn;
+            updateStatus('Call connected', 'connected');
+            toggleCallButtons(false, true);
+        });
+
+        device.on('disconnect', () => {
+            console.log('EVENT: "disconnect" - Call ended.');
+            connection = null;
+            updateStatus('Call ended', 'ready');
+            toggleCallButtons(true, false);
+        });
+    }
+
+    async function makeCall() {
+        const phoneNumber = phoneNumberInput.value;
+        if (!device || !phoneNumber) return;
+
+        updateStatus('Connecting...', 'connecting');
+        toggleCallButtons(false, false);
+        connection = await device.connect({ params: { To: phoneNumber } });
+    }
+
+    function hangUp() {
+        if (device) {
+            device.disconnectAll();
+        }
+    }
+
+    // --- UI Helper Functions ---
     function updateStatus(message, type) {
         statusDiv.textContent = message;
         statusDiv.style.color = 'black';
@@ -27,114 +120,4 @@ document.addEventListener('DOMContentLoaded', () => {
         callButton.disabled = !canCall;
         hangupButton.disabled = !canHangup;
     }
-
-    // Fetch Access Token and Initialize Device
-    async function initializeDevice() {
-        updateStatus('Initializing...', 'idle');
-        toggleCallButtons(false, false);
-
-        try {
-            console.log('STEP 1: Fetching token from', WORKER_URL);
-            const response = await fetch(WORKER_URL);
-            console.log('STEP 2: Received response from worker');
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Token fetch failed. Status:', response.status, 'Response:', errorText);
-                throw new Error(`Failed to fetch token: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            const token = data.token;
-            console.log('STEP 3: Token successfully extracted from JSON response.');
-            
-            tokenDisplay.textContent = token;
-            console.log('✅ Full token is now visible on the web page.');
-
-            console.log('STEP 4: Attempting to create Twilio.Device object...');
-            
-            try {
-                // We are creating the device with the most verbose logging enabled.
-                device = new Twilio.Device(token, {
-                    logLevel: 1,
-                    // Using the 'debug' property to get even more internal state logs
-                    debug: true 
-                });
-                console.log('STEP 5: Twilio.Device object created successfully.');
-
-            } catch (e) {
-                console.error('CRITICAL: The Twilio.Device constructor threw an error.', e);
-                updateStatus('SDK constructor failed', 'error');
-                // Stop execution if the constructor fails
-                return; 
-            }
-
-
-            console.log('STEP 6: Adding event listeners (.on("ready"), .on("error"), etc.)...');
-            device.on('ready', () => {
-                console.log('EVENT: "ready" - Device is registered and ready to make calls.');
-                updateStatus('Ready to call', 'ready');
-                toggleCallButtons(true, false);
-            });
-
-            device.on('error', (error) => {
-                console.error('EVENT: "error" - A fatal error occurred in the SDK.', error);
-                updateStatus(`Error: ${error.message}`, 'error');
-                toggleCallButtons(true, false);
-            });
-
-            device.on('connect', (conn) => {
-                console.log('EVENT: "connect" - Call has been established.');
-                connection = conn;
-                updateStatus('Call connected', 'connected');
-                toggleCallButtons(false, true);
-            });
-
-            device.on('disconnect', () => {
-                console.log('EVENT: "disconnect" - Call has ended.');
-                updateStatus('Call ended', 'ready');
-                toggleCallButtons(true, false);
-                connection = null;
-            });
-            console.log('STEP 7: Event listeners attached.');
-
-        } catch (error) {
-            console.error('Initialization Error:', error);
-            updateStatus('Initialization failed', 'error');
-        }
-    }
-
-    // Make a call
-    async function makeCall() {
-        const phoneNumber = phoneNumberInput.value;
-        if (!phoneNumber) {
-            updateStatus('Enter a phone number', 'error');
-            return;
-        }
-
-        updateStatus('Connecting...', 'connecting');
-        toggleCallButtons(false, false);
-
-        try {
-            connection = await device.connect({ params: { To: phoneNumber } });
-        } catch (error) {
-            console.error('Call failed:', error);
-            updateStatus('Call failed', 'error');
-            toggleCallButtons(true, false);
-        }
-    }
-
-    // Hang up a call
-    function hangUp() {
-        if (connection) {
-            connection.disconnect();
-        }
-    }
-
-    // Event Listeners
-    callButton.addEventListener('click', makeCall);
-    hangupButton.addEventListener('click', hangUp);
-
-    // Initialize on page load
-    initializeDevice();
 });
