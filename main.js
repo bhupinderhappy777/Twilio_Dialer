@@ -131,13 +131,30 @@ class TwilioDialer {
         try {
             const response = await fetch(this.tokenEndpoint);
             
+            console.log('Response status:', response.status);
+            console.log('Response headers:', [...response.headers.entries()]);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            const data = await response.json();
+            // Get response as text first to see what we're actually getting
+            const responseText = await response.text();
+            console.log('Raw response text:', responseText);
+            console.log('Response length:', responseText.length);
+            
+            // Try to parse as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse failed:', parseError);
+                console.error('First 200 characters of response:', responseText.substring(0, 200));
+                throw new Error(`Invalid JSON from server: ${parseError.message}`);
+            }
             
             if (!data.token) {
+                console.error('Response data:', data);
                 throw new Error('No token in response');
             }
             
