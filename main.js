@@ -15,13 +15,26 @@ class TwilioDialer {
         this.hangupButton = document.getElementById('hangupButton');
         this.statusDisplay = document.getElementById('statusDisplay');
         
+        // 🔍 DEBUG: Log what we found
+        console.log('🔍 DOM Elements Check:');
+        console.log('  phoneNumberInput:', !!this.phoneNumberInput);
+        console.log('  callButton:', !!this.callButton);
+        console.log('  hangupButton:', !!this.hangupButton);
+        console.log('  statusDisplay:', !!this.statusDisplay);
+        
         // Validate DOM elements
         if (!this.phoneNumberInput || !this.callButton || !this.hangupButton || !this.statusDisplay) {
-            console.error('Required DOM elements not found');
+            console.error('❌ Required DOM elements not found');
+            console.error('Missing elements:', {
+                phoneNumber: !this.phoneNumberInput,
+                callButton: !this.callButton,
+                hangupButton: !this.hangupButton,
+                statusDisplay: !this.statusDisplay
+            });
             return;
         }
         
-        console.log('DOM elements found successfully');
+        console.log('✅ All DOM elements found successfully');
         
         // Configuration
         this.tokenEndpoint = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
@@ -242,10 +255,29 @@ class TwilioDialer {
                     console.log('✅ Identity:', payload.grants?.identity);
                     console.log('✅ TwiML App SID:', payload.grants?.voice?.outgoing?.application_sid);
                     
+                    // 🔍 CHECK CREDENTIAL TYPE
+                    if (payload.iss?.startsWith('AC')) {
+                        console.log('🔑 USING MAIN AUTH TOKEN - Full permissions');
+                    } else if (payload.iss?.startsWith('SK')) {
+                        console.log('🔑 USING API KEY - Limited permissions possible');
+                    } else {
+                        console.log('🔑 UNKNOWN CREDENTIAL TYPE:', payload.iss);
+                    }
+                    
+                    // 🔍 TwiML APP VERIFICATION
+                    const twimlAppSid = payload.grants?.voice?.outgoing?.application_sid;
+                    if (twimlAppSid) {
+                        console.log('🔍 Checking if TwiML App exists...');
+                        console.log('🔍 TwiML App SID to verify:', twimlAppSid);
+                        console.log('🔍 Go to Twilio Console → Develop → TwiML Apps');
+                        console.log('🔍 Look for an app with SID:', twimlAppSid);
+                        console.log('🔍 If it doesn\'t exist, CREATE A NEW ONE!');
+                    }
+                    
                     // Check for issues
                     const issues = [];
-                    if (!payload.iss || !payload.iss.startsWith('SK')) {
-                        issues.push('ISS should be API Key SID starting with SK');
+                    if (!payload.iss || (!payload.iss.startsWith('SK') && !payload.iss.startsWith('AC'))) {
+                        issues.push('ISS should be API Key SID (SK) or Account SID (AC)');
                     }
                     if (!payload.sub || !payload.sub.startsWith('AC')) {
                         issues.push('SUB should be Account SID starting with AC');
