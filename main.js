@@ -1,5 +1,9 @@
 class TwilioDialer {
     constructor() {
+        console.log('TwilioDialer constructor called');
+        console.log('Twilio object available:', typeof window.Twilio);
+        console.log('Device class available:', window.Twilio && typeof window.Twilio.Device);
+        
         this.device = null;
         this.connection = null;
         this.isConnected = false;
@@ -10,17 +14,33 @@ class TwilioDialer {
         this.hangupButton = document.getElementById('hangupButton');
         this.statusDisplay = document.getElementById('statusDisplay');
         
+        console.log('DOM elements found:', {
+            phoneInput: !!this.phoneNumberInput,
+            callButton: !!this.callButton,
+            hangupButton: !!this.hangupButton,
+            statusDisplay: !!this.statusDisplay
+        });
+        
         // Configuration - Replace with your Cloudflare Worker URL
         this.tokenEndpoint = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
         
+        console.log('Starting initialization...');
         this.init();
     }
     
     async init() {
+        console.log('init() method called');
         try {
+            console.log('About to call setupDevice()');
             await this.setupDevice();
+            console.log('setupDevice() completed successfully');
+            
+            console.log('Setting up event listeners...');
             this.setupEventListeners();
+            
+            console.log('Updating status to ready...');
             this.updateStatus('Ready to make a call', 'idle');
+            console.log('Initialization completed successfully');
         } catch (error) {
             console.error('Failed to initialize dialer:', error);
             this.updateStatus('Failed to initialize. Check console for details.', 'error');

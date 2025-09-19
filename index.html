@@ -158,6 +158,8 @@
     <!-- Use the modern Twilio Voice SDK -->
     <script type="module">
         try {
+            console.log('Starting ES module loading...');
+            
             // Try multiple CDN sources for the ES module
             const cdnSources = [
                 'https://unpkg.com/@twilio/voice-sdk@2.11.1/dist/twilio.min.js',
@@ -178,11 +180,15 @@
                     window.Twilio = { Device };
                     
                     console.log('Twilio Voice SDK loaded successfully from:', source);
+                    console.log('Device class available:', typeof Device);
                     loaded = true;
                     
                     // Load main.js after SDK is ready
+                    console.log('Loading main.js...');
                     const mainScript = document.createElement('script');
                     mainScript.src = 'main.js';
+                    mainScript.onload = () => console.log('main.js loaded successfully');
+                    mainScript.onerror = () => console.error('Failed to load main.js');
                     document.head.appendChild(mainScript);
                     break;
                     
@@ -193,34 +199,61 @@
             }
             
             if (!loaded) {
+                console.error('All ES module sources failed, falling back to legacy');
                 throw new Error('All ES module sources failed');
             }
             
         } catch (error) {
             console.error('ES module loading failed:', error);
-            // Fall back to nomodule script
+            console.log('Triggering legacy fallback...');
+            // Trigger the legacy fallback manually
+            window.dispatchEvent(new Event('triggerLegacyFallback'));
         }
     </script>
     
     <!-- Fallback for browsers that don't support ES modules -->
     <script nomodule>
         console.log('ES modules not supported, trying legacy approach');
+        loadLegacyScript();
+    </script>
+    
+    <!-- Legacy fallback script -->
+    <script>
+        function loadLegacyScript() {
+            console.log('Loading legacy Twilio SDK...');
+            
+            // Try legacy script loading as fallback
+            const script = document.createElement('script');
+            script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
+            script.onload = function() {
+                console.log('Legacy Twilio SDK loaded');
+                console.log('Twilio object available:', typeof window.Twilio);
+                
+                const mainScript = document.createElement('script');
+                mainScript.src = 'main.js';
+                mainScript.onload = () => console.log('main.js loaded successfully (legacy)');
+                mainScript.onerror = () => console.error('Failed to load main.js (legacy)');
+                document.head.appendChild(mainScript);
+            };
+            script.onerror = function() {
+                console.error('Failed to load legacy Twilio SDK');
+                document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK - Check console for details';
+                document.getElementById('statusDisplay').className = 'status-display status-error';
+            };
+            document.head.appendChild(script);
+        }
         
-        // Try legacy script loading as fallback
-        const script = document.createElement('script');
-        script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
-        script.onload = function() {
-            console.log('Legacy Twilio SDK loaded');
-            const mainScript = document.createElement('script');
-            mainScript.src = 'main.js';
-            document.head.appendChild(mainScript);
-        };
-        script.onerror = function() {
-            console.error('Failed to load Twilio SDK');
-            document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK';
-            document.getElementById('statusDisplay').className = 'status-display status-error';
-        };
-        document.head.appendChild(script);
+        // Listen for manual fallback trigger
+        window.addEventListener('triggerLegacyFallback', loadLegacyScript);
+        
+        // Timeout fallback - if still loading after 10 seconds, try legacy
+        setTimeout(() => {
+            const statusDisplay = document.getElementById('statusDisplay');
+            if (statusDisplay && statusDisplay.textContent === 'Loading...') {
+                console.log('Timeout reached, trying legacy fallback...');
+                loadLegacyScript();
+            }
+        }, 10000);
     </script>
 </body>
 </html>
