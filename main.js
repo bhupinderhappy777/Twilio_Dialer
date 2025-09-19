@@ -42,6 +42,10 @@ async function initializeDevice() {
         console.log('STEP 3: Token successfully extracted from JSON response.');
         console.log('Received Token:', token);
 
+        // Automatically copy the token to the clipboard for easy debugging
+        navigator.clipboard.writeText(token).then(() => {
+            console.log('✅ Token copied to clipboard! You can now paste it into jwt.io.');
+        });
 
         console.log('STEP 4: Initializing Twilio.Device with the token...');
         device = new Twilio.Device(token, {
