@@ -1,109 +1,92 @@
 // This function will run once the entire HTML document is loaded and parsed.
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Your Cloudflare Worker URL
-    const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev'; // Replace with your worker URL
+    const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
 
-    // UI Sections
-    const startupUI = document.getElementById('startup-ui');
-    const dialerUI = document.getElementById('dialer-ui');
-
-    // Buttons and Inputs
-    const startupButton = document.getElementById('startup-button');
+    // UI Elements
     const callButton = document.getElementById('call-button');
     const hangupButton = document.getElementById('hangup-button');
     const phoneNumberInput = document.getElementById('phone-number');
-    
-    // Display Elements
     const statusDiv = document.getElementById('status');
-    const tokenDisplay = document.getElementById('token-display');
+    
+    // Hide the dialer UI initially
+    const dialerUI = document.getElementById('dialer-ui');
+    dialerUI.classList.add('hidden');
 
-    let device;
-    let connection;
+    // Use a single startup button
+    const startupButton = document.getElementById('startup-button');
+    startupButton.addEventListener('click', showDialer);
+
+    let call; // We will store the active call object here
+
+    function showDialer() {
+        startupButton.parentElement.classList.add('hidden');
+        dialerUI.classList.remove('hidden');
+        callButton.disabled = false;
+        updateStatus('Ready to call');
+    }
 
     // --- Main Application Flow ---
 
-    // 1. Add listener to the startup button
-    startupButton.addEventListener('click', initializeDevice);
-
-    // 2. Add listeners for call controls
     callButton.addEventListener('click', makeCall);
     hangupButton.addEventListener('click', hangUp);
 
+    async function makeCall() {
+        const phoneNumber = phoneNumberInput.value;
+        if (!phoneNumber) {
+            updateStatus('Please enter a phone number', 'error');
+            return;
+        }
 
-    // This function is now called ONLY after the user clicks the startup button
-    async function initializeDevice() {
-        updateStatus('Initializing...', 'idle');
-        startupButton.disabled = true; // Prevent multiple clicks
+        updateStatus('Requesting token and connecting...', 'connecting');
+        toggleCallButtons(false, false);
 
         try {
-            console.log('STEP 1: Fetching token from', WORKER_URL);
+            // 1. Fetch a new token for this call
             const response = await fetch(WORKER_URL);
             if (!response.ok) throw new Error('Failed to fetch token');
             const data = await response.json();
             const token = data.token;
-            console.log('STEP 2: Token received.');
-            tokenDisplay.textContent = token;
 
-            console.log('STEP 3: Creating Twilio.Device object (after user click)...');
-            device = new Twilio.Device(token, { logLevel: 1, debug: true });
-            console.log('STEP 4: Twilio.Device object created.');
-
-            addDeviceListeners(device);
+            // 2. Use the static Twilio.Call.connect() method
+            console.log('Attempting to connect call directly with Twilio.Call.connect()');
+            call = await Twilio.Call.connect({ token: token, params: { To: phoneNumber } });
             
+            // 3. Add listeners to the new call object
+            addCallListeners(call);
+            
+            updateStatus('Call is ringing...', 'connecting');
+            toggleCallButtons(false, true); // Enable hangup
+
         } catch (error) {
-            console.error('Initialization Error:', error);
-            updateStatus(`Initialization failed: ${error.message}`, 'error');
-            startupButton.disabled = false;
+            console.error('Call failed to connect:', error);
+            updateStatus(`Call failed: ${error.message}`, 'error');
+            toggleCallButtons(true, false); // Re-enable call button
         }
     }
 
-    function addDeviceListeners(device) {
-        device.on('ready', () => {
-            console.log('EVENT: "ready" - Device is registered.');
-            updateStatus('Ready to call', 'ready');
-            
-            // Show the main dialer UI
-            startupUI.classList.add('hidden');
-            dialerUI.classList.remove('hidden');
-            
-            toggleCallButtons(true, false);
-        });
-
-        device.on('error', (error) => {
-            console.error('EVENT: "error" - A fatal error occurred.', error);
-            updateStatus(`SDK Error: ${error.message}`, 'error');
-            toggleCallButtons(false, false);
-            startupButton.disabled = false;
-        });
-
-        device.on('connect', (conn) => {
-            console.log('EVENT: "connect" - Call established.');
-            connection = conn;
+    function addCallListeners(call) {
+        call.on('accept', () => {
             updateStatus('Call connected', 'connected');
-            toggleCallButtons(false, true);
         });
 
-        device.on('disconnect', () => {
-            console.log('EVENT: "disconnect" - Call ended.');
-            connection = null;
+        call.on('disconnect', () => {
             updateStatus('Call ended', 'ready');
             toggleCallButtons(true, false);
+            call = null;
         });
-    }
 
-    async function makeCall() {
-        const phoneNumber = phoneNumberInput.value;
-        if (!device || !phoneNumber) return;
-
-        updateStatus('Connecting...', 'connecting');
-        toggleCallButtons(false, false);
-        connection = await device.connect({ params: { To: phoneNumber } });
+        call.on('error', (error) => {
+            console.error('Call Error:', error);
+            updateStatus(`Call Error: ${error.message}`, 'error');
+            toggleCallButtons(true, false);
+            call = null;
+        });
     }
 
     function hangUp() {
-        if (device) {
-            device.disconnectAll();
+        if (call) {
+            call.disconnect();
         }
     }
 
