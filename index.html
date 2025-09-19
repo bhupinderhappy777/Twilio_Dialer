@@ -151,163 +151,34 @@
         </div>
         
         <div id="statusDisplay" class="status-display status-idle">
-            Loading...
+            Initializing...
         </div>
     </div>
 
-    <!-- Try multiple CDN sources for Twilio SDK -->
+    <!-- Simple, reliable Twilio SDK loading -->
+    <script src="https://unpkg.com/@twilio/voice-sdk@2.10.0/dist/twilio.min.js"></script>
     <script>
-        console.log('Trying multiple CDN sources for Twilio SDK...');
-        
-        const cdnSources = [
-            'https://unpkg.com/@twilio/voice-sdk@2.10.0/dist/twilio.min.js',
-            'https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.10.0/dist/twilio.min.js',
-            'https://cdnjs.cloudflare.com/ajax/libs/twilio-video/2.28.1/twilio-video.min.js', // Different but might work
-            'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js',
-            'https://sdk.twilio.com/js/voice/releases/2.9.0/twilio.min.js',
-            'https://sdk.twilio.com/js/voice/releases/2.8.0/twilio.min.js'
-        ];
-        
-        let currentCdnIndex = 0;
-        let sdkLoaded = false;
-        
-        function tryNextCdn() {
-            if (currentCdnIndex >= cdnSources.length) {
-                console.error('All CDN sources failed. Creating fallback solution...');
-                createFallbackSolution();
+        // Simple initialization after everything loads
+        window.addEventListener('load', function() {
+            console.log('Window loaded, initializing dialer...');
+            
+            // Check if Twilio is available
+            if (typeof Twilio === 'undefined') {
+                console.error('Twilio SDK not loaded');
+                document.getElementById('statusDisplay').textContent = 'Failed to load Twilio SDK';
+                document.getElementById('statusDisplay').className = 'status-display status-error';
                 return;
             }
             
-            const script = document.createElement('script');
-            script.src = cdnSources[currentCdnIndex];
-            console.log(`Trying CDN source ${currentCdnIndex + 1}/${cdnSources.length}: ${script.src}`);
-            
-            script.onload = function() {
-                console.log(`Successfully loaded from: ${script.src}`);
-                console.log('Twilio object available:', typeof window.Twilio);
-                console.log('Twilio object contents:', window.Twilio);
-                
-                // Check different possible locations for Device class
-                const possibleDevices = [
-                    window.Twilio && window.Twilio.Device,
-                    window.Device,
-                    window.Twilio && window.Twilio.Voice && window.Twilio.Voice.Device,
-                    window.TwilioDevice
-                ];
-                
-                console.log('Checking for Device class in different locations:');
-                possibleDevices.forEach((device, index) => {
-                    console.log(`Location ${index + 1}:`, typeof device);
-                });
-                
-                // Try to find and set up the Device class
-                let DeviceClass = null;
-                if (window.Twilio && window.Twilio.Device) {
-                    DeviceClass = window.Twilio.Device;
-                    console.log('Found Device at Twilio.Device');
-                } else if (window.Device) {
-                    DeviceClass = window.Device;
-                    window.Twilio = { Device: DeviceClass };
-                    console.log('Found Device at window.Device, created Twilio wrapper');
-                } else if (window.Twilio && window.Twilio.Voice && window.Twilio.Voice.Device) {
-                    DeviceClass = window.Twilio.Voice.Device;
-                    window.Twilio.Device = DeviceClass;
-                    console.log('Found Device at Twilio.Voice.Device, moved to Twilio.Device');
-                }
-                
-                if (DeviceClass && typeof DeviceClass === 'function') {
-                    console.log('Device class is available and is a function');
-                    console.log('Loading main.js...');
-                    sdkLoaded = true;
-                    const mainScript = document.createElement('script');
-                    mainScript.src = 'main.js';
-                    mainScript.onload = () => {
-                        console.log('main.js loaded successfully');
-                        console.log('About to check if TwilioDialer was created...');
-                        setTimeout(() => {
-                            console.log('Post-load check: TwilioDialer should have been instantiated by now');
-                        }, 1000);
-                    };
-                    mainScript.onerror = () => {
-                        console.error('Failed to load main.js');
-                        document.getElementById('statusDisplay').textContent = 'Failed to load main.js';
-                        document.getElementById('statusDisplay').className = 'status-display status-error';
-                    };
-                    document.head.appendChild(mainScript);
-                } else {
-                    console.log('Device class not found or not a function, trying next CDN...');
-                    console.log('Available properties on Twilio object:', Object.keys(window.Twilio || {}));
-                    currentCdnIndex++;
-                    setTimeout(tryNextCdn, 1000);
-                }
-            };
-            
-            script.onerror = function() {
-                console.log(`Failed to load from: ${script.src}`);
-                currentCdnIndex++;
-                setTimeout(tryNextCdn, 1000);
-            };
-            
-            // Timeout for each attempt
-            setTimeout(() => {
-                if (!sdkLoaded) {
-                    console.log(`Timeout for: ${script.src}`);
-                    currentCdnIndex++;
-                    tryNextCdn();
-                }
-            }, 5000);
-            
-            document.head.appendChild(script);
-        }
+            console.log('Twilio SDK available, starting app...');
+            initializeDialer();
+        });
         
-        function createFallbackSolution() {
-            console.log('Creating fallback solution without Twilio SDK...');
-            
-            // Create a mock Twilio object for testing
-            window.Twilio = {
-                Device: function(token, options) {
-                    console.log('Mock Twilio Device created');
-                    this.token = token;
-                    this.options = options;
-                    this.listeners = {};
-                    
-                    this.on = function(event, callback) {
-                        console.log(`Mock: Listening for ${event}`);
-                        this.listeners[event] = callback;
-                        
-                        // Simulate ready event
-                        if (event === 'ready') {
-                            setTimeout(() => {
-                                console.log('Mock: Triggering ready event');
-                                callback();
-                            }, 1000);
-                        }
-                    };
-                    
-                    this.connect = function(params) {
-                        console.log('Mock: Attempting to connect to', params.To);
-                        document.getElementById('statusDisplay').textContent = 'Mock connection - Twilio SDK not available';
-                        document.getElementById('statusDisplay').className = 'status-display status-error';
-                        return { disconnect: () => console.log('Mock: Disconnected') };
-                    };
-                }
-            };
-            
-            document.getElementById('statusDisplay').textContent = 'Using mock mode - Twilio SDK unavailable';
-            document.getElementById('statusDisplay').className = 'status-display status-error';
-            
-            // Load main.js with mock Twilio
-            const mainScript = document.createElement('script');
-            mainScript.src = 'main.js';
-            document.head.appendChild(mainScript);
-        }
-        
-        // Start trying CDNs when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', tryNextCdn);
-        } else {
-            tryNextCdn();
+        function initializeDialer() {
+            console.log('Starting dialer initialization...');
+            new TwilioDialer();
         }
     </script>
+    <script src="main.js"></script>
 </body>
 </html>
