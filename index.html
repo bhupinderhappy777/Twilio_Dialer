@@ -185,18 +185,49 @@
             script.onload = function() {
                 console.log(`Successfully loaded from: ${script.src}`);
                 console.log('Twilio object available:', typeof window.Twilio);
+                console.log('Twilio object contents:', window.Twilio);
                 
-                if (window.Twilio && (window.Twilio.Device || window.Twilio.Video)) {
-                    // Some versions might have Device under different paths
-                    if (!window.Twilio.Device && window.Twilio.Video) {
-                        console.log('Found Twilio.Video, checking for Voice capabilities...');
-                    }
-                    
+                // Check different possible locations for Device class
+                const possibleDevices = [
+                    window.Twilio && window.Twilio.Device,
+                    window.Device,
+                    window.Twilio && window.Twilio.Voice && window.Twilio.Voice.Device,
+                    window.TwilioDevice
+                ];
+                
+                console.log('Checking for Device class in different locations:');
+                possibleDevices.forEach((device, index) => {
+                    console.log(`Location ${index + 1}:`, typeof device);
+                });
+                
+                // Try to find and set up the Device class
+                let DeviceClass = null;
+                if (window.Twilio && window.Twilio.Device) {
+                    DeviceClass = window.Twilio.Device;
+                    console.log('Found Device at Twilio.Device');
+                } else if (window.Device) {
+                    DeviceClass = window.Device;
+                    window.Twilio = { Device: DeviceClass };
+                    console.log('Found Device at window.Device, created Twilio wrapper');
+                } else if (window.Twilio && window.Twilio.Voice && window.Twilio.Voice.Device) {
+                    DeviceClass = window.Twilio.Voice.Device;
+                    window.Twilio.Device = DeviceClass;
+                    console.log('Found Device at Twilio.Voice.Device, moved to Twilio.Device');
+                }
+                
+                if (DeviceClass && typeof DeviceClass === 'function') {
+                    console.log('Device class is available and is a function');
                     console.log('Loading main.js...');
                     sdkLoaded = true;
                     const mainScript = document.createElement('script');
                     mainScript.src = 'main.js';
-                    mainScript.onload = () => console.log('main.js loaded successfully');
+                    mainScript.onload = () => {
+                        console.log('main.js loaded successfully');
+                        console.log('About to check if TwilioDialer was created...');
+                        setTimeout(() => {
+                            console.log('Post-load check: TwilioDialer should have been instantiated by now');
+                        }, 1000);
+                    };
                     mainScript.onerror = () => {
                         console.error('Failed to load main.js');
                         document.getElementById('statusDisplay').textContent = 'Failed to load main.js';
@@ -204,7 +235,8 @@
                     };
                     document.head.appendChild(mainScript);
                 } else {
-                    console.log('Twilio object found but Device not available, trying next CDN...');
+                    console.log('Device class not found or not a function, trying next CDN...');
+                    console.log('Available properties on Twilio object:', Object.keys(window.Twilio || {}));
                     currentCdnIndex++;
                     setTimeout(tryNextCdn, 1000);
                 }

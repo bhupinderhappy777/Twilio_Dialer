@@ -233,8 +233,33 @@ class TwilioDialer {
 
 // Initialize the dialer when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new TwilioDialer();
+    console.log('DOMContentLoaded event fired, creating TwilioDialer...');
+    try {
+        const dialer = new TwilioDialer();
+        console.log('TwilioDialer instance created successfully:', dialer);
+    } catch (error) {
+        console.error('Error creating TwilioDialer:', error);
+        console.error('Error stack:', error.stack);
+        
+        // Update status display with error
+        const statusDisplay = document.getElementById('statusDisplay');
+        if (statusDisplay) {
+            statusDisplay.textContent = `Initialization failed: ${error.message}`;
+            statusDisplay.className = 'status-display status-error';
+        }
+    }
 });
+
+// Also try immediate execution in case DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('DOM already ready, creating TwilioDialer immediately...');
+    try {
+        const dialer = new TwilioDialer();
+        console.log('TwilioDialer instance created successfully (immediate):', dialer);
+    } catch (error) {
+        console.error('Error creating TwilioDialer (immediate):', error);
+    }
+}
 
 // Error handling for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
