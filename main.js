@@ -70,13 +70,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve, reject) => {
             let attempts = 0;
             const interval = setInterval(async () => {
+                // Check the availableOutputDevices collection on the audio helper
                 if (device.audio && device.audio.availableOutputDevices.size > 0) {
                     clearInterval(interval);
-                    const defaultDevice = Array.from(device.audio.availableOutputDevices.values())[0];
-                    console.log(`Found audio device: ${defaultDevice.label}. Setting it as output.`);
-                    await device.audio.setSinkId(defaultDevice.deviceId);
-                    console.log('Audio output device has been set.');
-                    resolve();
+                    try {
+                        const defaultDevice = Array.from(device.audio.availableOutputDevices.values())[0];
+                        console.log(`Found audio device: ${defaultDevice.label}. Setting it as output.`);
+
+                        // --- THIS IS THE CORRECT API CALL ---
+                        // Use the .set() method on the speakerDevices collection.
+                        await device.audio.speakerDevices.set(defaultDevice.deviceId);
+                        
+                        console.log('Audio output device has been set successfully.');
+                        resolve();
+                    } catch (err) {
+                        console.error('Failed to set audio device.', err);
+                        reject(err);
+                    }
                 } else {
                     attempts++;
                     if (attempts > 10) { // Wait for max 5 seconds
