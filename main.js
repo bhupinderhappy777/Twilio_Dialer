@@ -3,90 +3,114 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
 
-    // UI Elements
+    // UI Sections
+    const startupUI = document.getElementById('startup-ui');
+    const dialerUI = document.getElementById('dialer-ui');
+
+    // Buttons and Inputs
+    const startupButton = document.getElementById('startup-button');
     const callButton = document.getElementById('call-button');
     const hangupButton = document.getElementById('hangup-button');
     const phoneNumberInput = document.getElementById('phone-number');
-    const statusDiv = document.getElementById('status');
     
-    // Hide the dialer UI initially
-    const dialerUI = document.getElementById('dialer-ui');
-    dialerUI.classList.add('hidden');
+    // Display Elements
+    const statusDiv = document.getElementById('status');
 
-    // Use a single startup button
-    const startupButton = document.getElementById('startup-button');
-    startupButton.addEventListener('click', showDialer);
-
-    let call; // We will store the active call object here
-
-    function showDialer() {
-        startupButton.parentElement.classList.add('hidden');
-        dialerUI.classList.remove('hidden');
-        callButton.disabled = false;
-        updateStatus('Ready to call');
-    }
+    let device;
+    let connection;
 
     // --- Main Application Flow ---
 
+    // 1. When the user clicks "Start", we begin the setup process.
+    startupButton.addEventListener('click', initializeDevice);
+
+    // 2. Event listeners for the call buttons.
     callButton.addEventListener('click', makeCall);
     hangupButton.addEventListener('click', hangUp);
 
-    async function makeCall() {
-        const phoneNumber = phoneNumberInput.value;
-        if (!phoneNumber) {
-            updateStatus('Please enter a phone number', 'error');
-            return;
-        }
 
-        updateStatus('Requesting token and connecting...', 'connecting');
-        toggleCallButtons(false, false);
+    // This function handles the entire setup process.
+    async function initializeDevice() {
+        updateStatus('Requesting microphone permission...', 'idle');
+        startupButton.disabled = true;
 
         try {
-            // 1. Fetch a new token for this call
+            // --- THIS IS THE KEY STEP ---
+            // 1. Request microphone access from the user.
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Stop the tracks immediately since we only needed the permission prompt.
+            stream.getTracks().forEach(track => track.stop());
+            console.log('Microphone permission granted.');
+
+            // 2. Now that we have permission, fetch the token.
+            updateStatus('Fetching access token...', 'idle');
             const response = await fetch(WORKER_URL);
             if (!response.ok) throw new Error('Failed to fetch token');
             const data = await response.json();
             const token = data.token;
+            console.log('Token received.');
 
-            // 2. Use the static Twilio.Call.connect() method
-            console.log('Attempting to connect call directly with Twilio.Call.connect()');
-            call = await Twilio.Call.connect({ token: token, params: { To: phoneNumber } });
+            // 3. Create the Twilio Device. This should now succeed.
+            console.log('Creating Twilio.Device object...');
+            device = new Twilio.Device(token, { logLevel: 1, debug: true });
             
-            // 3. Add listeners to the new call object
-            addCallListeners(call);
+            addDeviceListeners(device);
             
-            updateStatus('Call is ringing...', 'connecting');
-            toggleCallButtons(false, true); // Enable hangup
-
         } catch (error) {
-            console.error('Call failed to connect:', error);
-            updateStatus(`Call failed: ${error.message}`, 'error');
-            toggleCallButtons(true, false); // Re-enable call button
+            console.error('Initialization Failed:', error);
+            updateStatus(`Error: ${error.message}`, 'error');
+            // If permission was denied, the error message will reflect that.
+            if (error.name === 'NotAllowedError') {
+                updateStatus('Microphone permission was denied.', 'error');
+            }
+            startupButton.disabled = false;
         }
     }
 
-    function addCallListeners(call) {
-        call.on('accept', () => {
-            updateStatus('Call connected', 'connected');
+    function addDeviceListeners(device) {
+        device.on('ready', () => {
+            console.log('EVENT: "ready" - Twilio.Device is now registered.');
+            updateStatus('Ready to call', 'ready');
+            
+            // Show the main dialer UI
+            startupUI.classList.add('hidden');
+            dialerUI.classList.remove('hidden');
+            
+            toggleCallButtons(true, false);
         });
 
-        call.on('disconnect', () => {
+        device.on('error', (error) => {
+            console.error('EVENT: "error" - A fatal SDK error occurred.', error);
+            updateStatus(`SDK Error: ${error.message}`, 'error');
+            toggleCallButtons(false, false);
+            startupButton.disabled = false;
+        });
+
+        device.on('connect', (conn) => {
+            connection = conn;
+            updateStatus('Call connected', 'connected');
+            toggleCallButtons(false, true);
+        });
+
+        device.on('disconnect', () => {
+            connection = null;
             updateStatus('Call ended', 'ready');
             toggleCallButtons(true, false);
-            call = null;
-        });
-
-        call.on('error', (error) => {
-            console.error('Call Error:', error);
-            updateStatus(`Call Error: ${error.message}`, 'error');
-            toggleCallButtons(true, false);
-            call = null;
         });
     }
 
+    async function makeCall() {
+        const phoneNumber = phoneNumberInput.value;
+        if (!device || !phoneNumber) return;
+
+        updateStatus('Connecting...', 'connecting');
+        toggleCallButtons(false, false);
+        connection = await device.connect({ params: { To: phoneNumber } });
+    }
+
     function hangUp() {
-        if (call) {
-            call.disconnect();
+        if (device) {
+            device.disconnectAll();
         }
     }
 
