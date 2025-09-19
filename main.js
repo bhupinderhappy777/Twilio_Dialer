@@ -261,6 +261,31 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     }
 }
 
+// Force execution after a short delay to ensure DOM is ready
+setTimeout(() => {
+    console.log('Timeout execution: Checking if TwilioDialer exists...');
+    console.log('Document ready state:', document.readyState);
+    console.log('DOM elements check:');
+    console.log('- phoneNumber:', !!document.getElementById('phoneNumber'));
+    console.log('- callButton:', !!document.getElementById('callButton'));
+    console.log('- hangupButton:', !!document.getElementById('hangupButton'));
+    console.log('- statusDisplay:', !!document.getElementById('statusDisplay'));
+    
+    if (!window.dialerInstance) {
+        console.log('TwilioDialer not yet created, forcing creation...');
+        try {
+            window.dialerInstance = new TwilioDialer();
+            console.log('TwilioDialer instance created successfully (forced):', window.dialerInstance);
+        } catch (error) {
+            console.error('Error creating TwilioDialer (forced):', error);
+            console.error('Error details:', error.message);
+            console.error('Stack trace:', error.stack);
+        }
+    } else {
+        console.log('TwilioDialer already exists');
+    }
+}, 2000);
+
 // Error handling for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
