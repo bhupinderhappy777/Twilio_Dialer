@@ -3,51 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twilio Dialer</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <title>Simple Twilio Dialer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        input {
+            padding: 10px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h1 class="text-2xl font-bold text-center text-gray-800">Twilio Voice Dialer</h1>
+<body>
+    <div class="container">
+        <h1>Simple Dialer</h1>
         
-        <!-- Initial State: A single button to start everything -->
-        <div id="startup-ui">
-            <button id="startup-button" class="w-full px-4 py-3 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Click to Start Dialer
-            </button>
+        <div>
+            <label for="phone-number">Phone Number:</label>
+            <input type="tel" id="phone-number" placeholder="+15551234567">
         </div>
-
-        <!-- Dialer UI: Hidden by default -->
-        <div id="dialer-ui" class="hidden space-y-6">
-            <div>
-                <label for="phone-number" class="text-sm font-medium text-gray-700">Phone Number</label>
-                <input type="tel" id="phone-number" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., +15551234567">
-            </div>
-
-            <div class="flex space-x-4">
-                <button id="call-button" class="w-full px-4 py-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" disabled>
-                    Call
-                </button>
-                <button id="hangup-button" class="w-full px-4 py-2 font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2" disabled>
-                    Hang Up
-                </button>
-            </div>
+        
+        <div>
+            <button id="call-button" disabled>Call</button>
+            <button id="hangup-button" disabled>Hang Up</button>
         </div>
-
-        <div id="status" class="p-3 text-center text-gray-700 bg-gray-100 rounded-md">
-            Waiting for user to start...
-        </div>
-
-        <!-- Debugging Area -->
-        <div class="mt-4 hidden">
-            <label class="text-xs font-medium text-gray-500">Full Access Token:</label>
-            <pre id="token-display" class="w-full p-2 mt-1 text-xs text-gray-600 bg-gray-100 rounded-md break-all whitespace-pre-wrap"></pre>
-        </div>
+        
+        <div id="status">Ready</div>
     </div>
 
-    <!-- Load the LATEST Twilio Voice SDK -->
-    <script type="text/javascript" src="https://unpkg.com/@twilio/voice-sdk@2.15.0/dist/twilio.min.js"></script>
-    
-    <script type="text/javascript" src="main.js"></script>
+    <!-- Note the type="module" attribute - this enables ES modules -->
+    <script type="module" src="main.js"></script>
 </body>
 </html>
