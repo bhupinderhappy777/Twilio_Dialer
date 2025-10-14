@@ -1,11 +1,10 @@
 // Import the Device class directly from the Twilio SDK using ES modules
-import { Device } from 'https://unpkg.com/@twilio/voice-sdk@2.15.0/dist/js/twilio.min.js?module';
 
-// Log that the module was loaded
-console.log('ES module loaded successfully');
+// Use Twilio Voice SDK from global object (loaded via <script> in index.html)
+// Make sure to add this to index.html:
+// <script src="https://sdk.twilio.com/js/voice/releases/2.15.0/twilio-voice.min.js"></script>
 
-// Get the SDK version (different from the global version)
-console.log(`Using Twilio Voice SDK`);
+console.log('Using Twilio Voice SDK from global Twilio.Device');
 
 // Define the worker URL
 const WORKER_URL = 'https://twilio-token-worker.bhupinderhappy777.workers.dev';
@@ -59,7 +58,7 @@ async function initializeDevice() {
     const token = await fetchAccessToken();
     
     updateStatus('Initializing device...');
-    device = new Device(token, {
+  device = new Twilio.Device(token, {
       logLevel: 1, // Debug level logging
       codecPreferences: ['opus', 'pcmu']
     });
